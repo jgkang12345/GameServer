@@ -15,6 +15,7 @@ enum
 };
 
 char item[3][10] = { "가위", "바위", "보" };
+char result_char[3][10] = { "서버 승리", "클라 승리", "무승부" };
 int result[3][3] = { {D,L,V},{V,D,L},{L,V,D}};
 
 bool GameService::Update()
@@ -22,31 +23,26 @@ bool GameService::Update()
 	if (m_p1_score >= 2)
 	{
 		Session* session = App::GetInstance()->GetSession();
-		char send_buffer[256] = "p";
-		char recv_buffer[256];
+		session->SetSendBuf("p");
 		printf("게임 종료!! 재구 승리\n");
-		send(session->GetScoket(), send_buffer, sizeof(send_buffer), 0);
-		recv(session->GetScoket(), recv_buffer, sizeof(recv_buffer), 0);
+		send(session->GetScoket(), session->GetSendBuf(), session->GetBufSize(), 0);
+		recv(session->GetScoket(), session->GetRecvBuf(), session->GetBufSize(), 0);
 		return false;
 	}
 	else if (m_p2_score >= 2)
 	{
 		Session* session = App::GetInstance()->GetSession();
-		char send_buffer[256] = "q";
-		char recv_buffer[256];
+		session->SetSendBuf("q");
 		printf("게임 종료!! 로운 승리\n");
-		send(session->GetScoket(), send_buffer, sizeof(send_buffer), 0);
-		int len = recv(session->GetScoket(), recv_buffer, sizeof(recv_buffer), 0);
-		if (len < 0) printf("recv error   \n");
-
+		send(session->GetScoket(), session->GetSendBuf(), session->GetBufSize(), 0);
+		recv(session->GetScoket(), session->GetRecvBuf(), session->GetBufSize(), 0);
 		return false;
 	}
 	else
 	{
 		Session* session = App::GetInstance()->GetSession();
-		char send_buffer[256] = "f";
-		char recv_buffer[256];
-		send(session->GetScoket(), send_buffer, sizeof(send_buffer), 0);
+		session->SetSendBuf("f");
+		send(session->GetScoket(), session->GetSendBuf(), session->GetBufSize(), 0);
 	}
 
 
@@ -98,13 +94,11 @@ void GameService::Pick()
 	}
 	Session* session = App::GetInstance()->GetSession();
 
-	char recv_buffer [256];
-	char send_buffer [256];
 
-	int retValue = recv(session->GetScoket(), recv_buffer, sizeof(recv_buffer), 0);
-	m_p2_key = *(recv_buffer);
-	strcpy_s(send_buffer, "t");
-	send(session->GetScoket(), send_buffer, sizeof(send_buffer), 0);
+	recv(session->GetScoket(), session->GetRecvBuf(), session->GetBufSize(), 0);
+	m_p2_key = *(session->GetRecvBuf());
+	session->SetSendBuf("t");
+	send(session->GetScoket(), session->GetSendBuf(), session->GetBufSize(), 0);
 }
 
 void GameService::CalResult()
@@ -128,28 +122,22 @@ void GameService::CalResultRender()
 	Session* session = App::GetInstance()->GetSession();
 	char send_buffer[256];
 	sprintf_s(send_buffer, "%c#%c#%d", m_p1_key, m_p2_key, m_result);
-	send(session->GetScoket(), send_buffer, sizeof(send_buffer), 0);
+	session->SetSendBuf(send_buffer);
+	send(session->GetScoket(), session->GetSendBuf(), session->GetSendBufSize(), 0);
 
 	const int p1_index = GetIndex(m_p1_key);
 	const int p2_index = GetIndex(m_p2_key);
 	printf("서버 %s \t", item[p1_index]);
 	printf("클라 %s \t", item[p2_index]);
-
-
+	printf("%s \n", result_char[m_result]);
 	switch (m_result)
 	{
 	case P1:
 		m_p1_score += 1;
-		printf("서버 승리!\n");
 		break;
 
 	case P2:
 		m_p2_score += 1;
-		printf("클라 승리!\n");
-		break;
-
-	case DD:
-		printf("무승부!\n");
 		break;
 	}
 
