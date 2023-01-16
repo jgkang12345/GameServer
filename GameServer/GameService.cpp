@@ -7,6 +7,16 @@
 #include"ConsoleHelper.h"
 GameService* GameService::m_instance = nullptr;
 
+enum 
+{
+	V = 0,
+	L = 1,
+	D = 2,
+};
+
+char item[3][10] = { "가위", "바위", "보" };
+int result[3][3] = { {D,L,V},{V,D,L},{L,V,D}};
+
 bool GameService::Update()
 {
 	if (m_p1_score >= 2)
@@ -14,7 +24,7 @@ bool GameService::Update()
 		Session* session = App::GetInstance()->GetSession();
 		char send_buffer[256] = "p";
 		char recv_buffer[256];
-		printf("게임 종료!! 서버 승리\n");
+		printf("게임 종료!! 재구 승리\n");
 		send(session->GetScoket(), send_buffer, sizeof(send_buffer), 0);
 		recv(session->GetScoket(), recv_buffer, sizeof(recv_buffer), 0);
 		return false;
@@ -24,9 +34,11 @@ bool GameService::Update()
 		Session* session = App::GetInstance()->GetSession();
 		char send_buffer[256] = "q";
 		char recv_buffer[256];
-		printf("게임 종료!! 클라 승리\n");
+		printf("게임 종료!! 로운 승리\n");
 		send(session->GetScoket(), send_buffer, sizeof(send_buffer), 0);
-		recv(session->GetScoket(), recv_buffer, sizeof(recv_buffer), 0);
+		int len = recv(session->GetScoket(), recv_buffer, sizeof(recv_buffer), 0);
+		if (len < 0) printf("recv error   \n");
+
 		return false;
 	}
 	else
@@ -60,30 +72,11 @@ void GameService::Pick()
 	{
 		if(GetTickCount64() >= Timer + 1000) //1초가 지났는가?
 		{
-			/*printf("1초 지남");*/
 			Timer = GetTickCount64();
 			m_count++;
 
-			if (m_count == 5)
-			{
-				printf("5초 남았습니다...\n");
-			}
-			else if (m_count == 6)
-			{
-				printf("4초 남았습니다...\n");
-			}
-			else if (m_count == 7)
-			{
-				printf("3초 남았습니다...\n");
-			}
-			else if (m_count == 8)
-			{
-				printf("2초 남았습니다...\n");
-			}
-			else if (m_count == 9)
-			{
-				printf("1초 남았습니다...\n");
-			}
+			if( m_count > 4 && m_count <= 9)
+				printf("%d초 남았습니다...\n",10 - m_count);
 			else if (m_count == 10)
 			{
 				printf("시간초과... 자동으로 선택됩니다.");
@@ -108,7 +101,7 @@ void GameService::Pick()
 	char recv_buffer [256];
 	char send_buffer [256];
 
-	recv(session->GetScoket(), recv_buffer, sizeof(recv_buffer), 0);
+	int retValue = recv(session->GetScoket(), recv_buffer, sizeof(recv_buffer), 0);
 	m_p2_key = *(recv_buffer);
 	strcpy_s(send_buffer, "t");
 	send(session->GetScoket(), send_buffer, sizeof(send_buffer), 0);
@@ -120,59 +113,10 @@ void GameService::CalResult()
 	
 	Sleep(1500);
 
-	switch (m_p1_key)
-	{
-	case RockPaperScissors::Rock:
-		switch (m_p2_key)
-		{
-			case RockPaperScissors::Rock:
-				m_result = DD;
-				break;
+	const int p1_index = GetIndex(m_p1_key);
+	const int p2_index = GetIndex(m_p2_key);
 
-			case RockPaperScissors::Scissors:
-				m_result = P1;
-				break;
-
-			case RockPaperScissors::Paper:
-				m_result = P2;
-				break;
-		}
-		break;
-
-	case RockPaperScissors::Scissors:
-		switch (m_p2_key)
-		{
-		case RockPaperScissors::Rock:
-			m_result = P2;
-			break;
-
-		case RockPaperScissors::Scissors:
-			m_result = DD;
-			break;
-
-		case RockPaperScissors::Paper:
-			m_result = P1;
-			break;
-		}
-		break;
-
-	case RockPaperScissors::Paper:
-		switch (m_p2_key)
-		{
-		case RockPaperScissors::Rock:
-			m_result = P1;
-			break;
-
-		case RockPaperScissors::Scissors:
-			m_result = P2;
-			break;
-
-		case RockPaperScissors::Paper:
-			m_result = DD;
-			break;
-		}
-		break;
-	}
+	m_result = (Result) result[p1_index][p2_index];
 
 	ConsoleHelper::Clear();
 	CalResultRender();
@@ -186,48 +130,22 @@ void GameService::CalResultRender()
 	sprintf_s(send_buffer, "%c#%c#%d", m_p1_key, m_p2_key, m_result);
 	send(session->GetScoket(), send_buffer, sizeof(send_buffer), 0);
 
-
-	switch (m_p1_key)
-	{
-	case RockPaperScissors::Rock:
-		printf("서버 바위 \t");
-		break;
-
-	case RockPaperScissors::Scissors:
-		printf("서버 가위 \t");
-		break;
-
-	case RockPaperScissors::Paper:
-		printf("서버 보자기 \t");
-		break;
-	}
-
-	switch (m_p2_key)
-	{
-	case RockPaperScissors::Rock:
-		printf("클라 바위 \n");
-		break;
-
-	case RockPaperScissors::Scissors:
-		printf("클라 가위 \n");
-		break;
-
-	case RockPaperScissors::Paper:
-		printf("클라 보자기 \n");
-		break;
-	}
+	const int p1_index = GetIndex(m_p1_key);
+	const int p2_index = GetIndex(m_p2_key);
+	printf("서버 %s \t", item[p1_index]);
+	printf("클라 %s \t", item[p2_index]);
 
 
 	switch (m_result)
 	{
 	case P1:
 		m_p1_score += 1;
-		printf("서버 승리~!\n");
+		printf("서버 승리!\n");
 		break;
 
 	case P2:
 		m_p2_score += 1;
-		printf("클라 승리~!\n");
+		printf("클라 승리!\n");
 		break;
 
 	case DD:

@@ -32,6 +32,10 @@ public:
 	void CalResult();
 	void CalResultRender();
 	bool Update();
+	int  GetIndex(char key)
+	{
+		return key - 48 - 1;
+	}
 	static GameService* GetInstance() 
 	{
 		if (m_instance == nullptr)

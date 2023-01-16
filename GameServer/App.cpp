@@ -22,7 +22,7 @@ void App::Init()
 	if (m_socket == INVALID_SOCKET) 
 		printf("Failed socket() \n");
 
-	SocketHelper::InitIP4Socket(m_sock_addr_in, "127.0.0.1", 3000);
+	SocketHelper::InitIP4Socket(m_sock_addr_in, "58.236.86.23", 3000);
 
 	if (bind(m_socket, (SOCKADDR*)&m_sock_addr_in, sizeof(m_sock_addr_in)) == SOCKET_ERROR)
 		printf("Binding Error \n");
